@@ -2,7 +2,7 @@ import filter from "lodash/filter";
 import includes from "lodash/includes";
 import remove from "lodash/remove";
 import flatten from "lodash/flatten";
-import type { NextPage } from "next";
+import type { GetServerSideProps, NextPage } from "next";
 import React, { useCallback, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Hearts } from "react-loader-spinner";
@@ -14,16 +14,16 @@ import {
   useRecoilValue,
   useSetRecoilState,
 } from "recoil";
-import { Product } from "../external/products";
+import { Product, fetchProductsExternal } from "../external/products";
 import { usePagination, useCursorPagination } from "../libs/hooks";
 
 const productListState = atom<Product[]>({
-  key: "productListState", // unique ID (with respect to other atoms/selectors)
+  key: "productListSsrState", // unique ID (with respect to other atoms/selectors)
   default: [], // default value (aka initial value)
 });
 
 const deletedIdsState = atom<number[]>({
-  key: "deletedIdsState",
+  key: "deletedIdsSsrState",
   default: [],
   effects: [
     ({ onSet, setSelf, node }) => {
@@ -46,7 +46,7 @@ const deletedIdsState = atom<number[]>({
 });
 
 const filteredProductListSelector = selector({
-  key: "filteredProductListState", // unique ID (with respect to other atoms/selectors)
+  key: "filteredProductListSsrState", // unique ID (with respect to other atoms/selectors)
   get: ({ get }) => {
     const productList = get(productListState);
     const deletedIds = get(deletedIdsState);
@@ -54,14 +54,16 @@ const filteredProductListSelector = selector({
   },
 });
 
-const Home: NextPage = () => {
+interface SsrPageProps {
+  fallbackData: Product[];
+}
+
+const SsrPage: NextPage<SsrPageProps> = ({ fallbackData }) => {
   const { data, error, setSize, isReachedEnd } = usePagination<Product>(
     "/api/products",
-    10
+    10,
+    fallbackData
   );
-
-  // const { data: cursorPaginationData } =
-  //   useCursorPagination<Product>("/api/products");
 
   const setProductList = useSetRecoilState(productListState);
   const setDeletedIds = useSetRecoilState(deletedIdsState);
@@ -96,7 +98,7 @@ const Home: NextPage = () => {
 
   return (
     <div>
-      <h1>Infinite scroll example</h1>
+      <h1>Infinite scroll example (SSR)</h1>
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <InfiniteScroll
           next={() => setSize((prev) => prev + 1)}
@@ -120,7 +122,17 @@ const Home: NextPage = () => {
   );
 };
 
-export default Home;
+export default SsrPage;
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const data = await fetchProductsExternal({ limit: "20", page: "0" });
+  console.log("ssr called");
+  return {
+    props: {
+      fallbackData: data,
+    },
+  };
+};
 
 interface ProductItemProps {
   id: number;

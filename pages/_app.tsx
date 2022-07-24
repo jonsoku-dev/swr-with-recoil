@@ -7,7 +7,8 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <RecoilRoot>
       <div>
-        <Link href="/">Main Page</Link>
+        <Link href="/">CSR Page</Link>
+        <Link href="/ssr">SSR Page</Link>
         <Link href="/test">TEST PAGE</Link>
       </div>
       <Component {...pageProps} />

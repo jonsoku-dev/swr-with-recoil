@@ -5,7 +5,11 @@ import flatten from "lodash/flatten";
 
 const fetcher = (url: string) => axios.get(url).then((res) => res.data);
 
-export const usePagination = <T>(url: string, PAGE_SIZE = 20) => {
+export const usePagination = <T>(
+  url: string,
+  PAGE_SIZE = 20,
+  fallbackData?: T[]
+) => {
   const getKey = useCallback(
     (pageIndex: number, previousPageData: T[] | null) => {
       if (previousPageData && !previousPageData.length) return null; // reached the end
@@ -19,6 +23,7 @@ export const usePagination = <T>(url: string, PAGE_SIZE = 20) => {
     fetcher,
     {
       revalidateFirstPage: false,
+      fallbackData: fallbackData ? [fallbackData ?? []] : undefined,
     }
   );
 
